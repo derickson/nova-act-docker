@@ -2,7 +2,7 @@
 import os
 from pydantic import BaseModel
 from nova_act import NovaAct
-
+import json
 ## Asssume all environment variables are set in the container
 
 class BlogInfo(BaseModel):
@@ -25,9 +25,6 @@ nova.start()
 # Click the 'Learn More' button
 nova.act("click the 'Learn More' button")
 
-# # Add your nova.act(<prompt>) statement here
-# nova.act("Click the Learn More button. Then, return the title and publication date of the blog.")
-
 # Extract the blog title and publication date
 result = nova.act(
     "return the title and publication date of the blog post", 
@@ -35,18 +32,9 @@ result = nova.act(
 )
 
 if result.matches_schema:
-    blog = BlogInfo.model_validate(result.parsed_response)
-    print("Blog Information:")
-    print(f"Title: {blog.title}")
-    if blog.publication_date:
-        print(f"Publication Date: {blog.publication_date}")
-    else:
-        print("Publication Date: Not found")
+    print(json.dumps(result.parsed_response, indent=2))
 else:
-    print("Could not extract blog information.")
-    print(f"Raw response: {result.response}")
+    print(json.dumps({"error": "Could not extract blog information."}, indent=2))
 
-# Leaving nova.stop() commented keeps NovaAct session running.
-# To stop a NovaAct instance, press "Restart Notebook" (top-right) or uncomment nova.stop() 
-# Note: this also shuts down the browser instantiated by NovaAct so subsequent nova.act() calls will fail.
+
 nova.stop()
