@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  nova-act-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nova-act-runner
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount scripts directory for hot-reload development
+      - ./scripts:/app/scripts:ro
+      # Optional: mount for persistent browser data if needed
+      - nova-act-browser-data:/tmp/browser-data
+    environment:
+      # Nova Act API key - set this in your .env file or pass via docker-compose
+      - NOVA_ACT_API_KEY=${NOVA_ACT_API_KEY}
+      # Optional: additional Nova Act configuration
+      - NOVA_ACT_BROWSER_ARGS=${NOVA_ACT_BROWSER_ARGS}
+      # Server configuration
+      - HOST=${HOST}
+      - PORT=${PORT}
+    # Use init to handle zombie processes properly
+    init: true
+    # Restart policy
+    restart: unless-stopped
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Security options
+    security_opt:
+      - seccomp:unconfined
+    # Shared memory size for browser
+    shm_size: 2gb
+
+  # CLI service for running one-off commands (doesn't start automatically)
+  nova-act-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./scripts:/app/scripts:ro
+      - nova-act-browser-data:/tmp/browser-data
+    environment:
+      - NOVA_ACT_API_KEY=${NOVA_ACT_API_KEY}
+      - NOVA_ACT_BROWSER_ARGS=${NOVA_ACT_BROWSER_ARGS}
+    # Override the default command to run CLI
+    command: ["python", "src/cli.py", "--help"]
+    init: true
+    security_opt:
+      - seccomp:unconfined
+    shm_size: 2gb
+
+volumes:
+  nova-act-browser-data:
+    driver: local
